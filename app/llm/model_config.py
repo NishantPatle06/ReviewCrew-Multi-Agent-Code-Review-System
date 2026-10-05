@@ -84,10 +84,15 @@ def get_llm_with_fallback(temperature: float = 0.3):
     step, the eval judge.
     """
     primary = _build_gemini(temperature)
-    fallback = _build_groq(temperature)
-    return primary.with_fallbacks(
-        [fallback], exceptions_to_handle=(ModelRateLimitError,)
-    )
+    if not os.getenv("GROQ_API_KEY"):
+        return primary
+    try:
+        fallback = _build_groq(temperature)
+        return primary.with_fallbacks(
+            [fallback], exceptions_to_handle=(ModelRateLimitError,)
+        )
+    except Exception:
+        return primary
 
 
 def bind_tools_with_fallback(tools: list, temperature: float = 0.3):
@@ -100,7 +105,12 @@ def bind_tools_with_fallback(tools: list, temperature: float = 0.3):
     rather than binding once afterward.
     """
     primary = _build_gemini(temperature).bind_tools(tools)
-    fallback = _build_groq(temperature).bind_tools(tools)
-    return primary.with_fallbacks(
-        [fallback], exceptions_to_handle=(ModelRateLimitError,)
-    )
+    if not os.getenv("GROQ_API_KEY"):
+        return primary
+    try:
+        fallback = _build_groq(temperature).bind_tools(tools)
+        return primary.with_fallbacks(
+            [fallback], exceptions_to_handle=(ModelRateLimitError,)
+        )
+    except Exception:
+        return primary
